@@ -21,9 +21,15 @@
     <ClCompile Include="Volume.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Convert.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Volume.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Convert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
