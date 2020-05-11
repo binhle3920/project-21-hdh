@@ -1,0 +1,22 @@
+Define sẵn: số byte của sector, số sector của cluster, số sector của boot(8)
+
+Tạo file
+	Nhập tên, nhập size ==> Tạo thành 1 fize với struct như Ân gửi (có cần lưu thông tin gì không ????)
+	Lưu biến: cluster trống đầu tiên
+
+Đọc file
+	Nhận tên ==> mở file lên để đọc
+
+Các hàm chung
+	while true():
+		nhập tính năng
+			1. danh sách file
+			đi đến cluster 4, đọc tên file, đuôi file ==> xuất ra màn hình
+			while (vẫn còn file)
+				tăng lên cluster 
+				đọc tên file, đuôi file
+
+			2. Import 1 file
+			3. Export 1 file
+			4. Xóa 1 file
+

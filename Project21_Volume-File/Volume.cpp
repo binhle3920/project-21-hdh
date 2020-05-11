@@ -72,6 +72,38 @@ void writeSize(FILE* f, int size) {
 	delete[] codeInArray;
 	delete[] hexArray;
 }
+
+void writeFirstFreeCluster(FILE* f, int first) {
+	fseek(f, 25, SEEK_SET);
+	string* hexArray = decimalToHex(4, first);
+	char* codeInArray = new char[4];
+	for (int i = 0; i < 4; i++) {
+		codeInArray[i] = char(hexToDecimal(hexArray[i]));
+	}
+	fwrite(codeInArray, 1, 4, f);
+	delete[] codeInArray;
+	delete[] hexArray;
+}
+
+void writeFileName(FILE* f, const char* name, int length) {
+	fseek(f, 36, SEEK_SET);
+	if (length < 8) {
+		//if length of name<8, move pointer to fullfil 8 byte
+		int blank = 8 - length;
+		fseek(f, blank, SEEK_CUR);
+	}
+	fwrite(name, 1, length, f);
+}
+
+void writeFileExtension(FILE* f, const char* extension, int length) {
+	//dont need fseek :) guess why
+	if (length < 4) {
+		fseek(f, 4 - length, SEEK_CUR);
+	}
+	fwrite(extension, 1, length, f);
+}
+
+
 bool createNewVol(const char* path, int size) {
 	FILE* fcreate;
 	fcreate = fopen(path, "wb");
@@ -94,7 +126,41 @@ bool createNewVol(const char* path, int size) {
 	writeSectorOfBoot(fcreate);
 	writeNumSectorOfVol(fcreate, size);
 	writeSize(fcreate, size);
+	writeFirstFreeCluster(fcreate, 4);
 
+	//The code below to create the vol name base on path
+	char* name = new char[8]; //name have maximum 8 byte
+	int length = 0; //count the lenght of name (bytes)
+	for (int i = 0; i < strlen(path); i++) {
+		if (path[i] == '.') {
+			break;
+		}
+		length++; //increase length per character
+		name[i] = path[i];
+	}
+	//The code above to create the vol name base on path
+
+	//The code below to create the vol extension through path
+	//extension have maximum 4 byte
+	char* ex = new char[4];
+	//path[length] currently is "."
+	int curLength = length+1;
+	int i;
+	for (i = 0; i < 4; i++) {
+		ex[i] = path[curLength];
+		curLength++;
+		//end of path string
+		if (curLength == strlen(path)) {
+			break;
+		}
+	}
+	//The code above to create the vol extension through path
+
+
+	writeFileName(fcreate, name, length);
+	delete[] name;
+	writeFileExtension(fcreate, ex, i + 1);
+	delete[] ex;
 
 	fclose(fcreate);
 	return 1;
