@@ -54,3 +54,16 @@ string* decimalToHex(int numByte, int32_t decimal) {
 
 	return hex;
 }
+
+//This function is used for reading value from volume
+//Example: we want to know how many sector 
+int charToInt(const char* listChar, int numByte) {
+	//numByte here is listChar length, first we convert char to hexvalue 
+	//ex: string "AB" will be come "1A5F" and then we convert 1A5F to integer
+	string hex = "";
+	for (int i = 0; i < numByte; i++) {
+		string* temp = decimalToHex(1, int(unsigned char(listChar[i])));
+		hex += temp[0];
+	}
+	return hexToDecimal(hex);
+}

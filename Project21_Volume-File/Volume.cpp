@@ -13,66 +13,60 @@ void writeJumpCode(FILE* f) {
 	delete[] codeInArray;
 	//DONE
 }
-
 void writeBytePerSector(FILE* f) {
 	//Write BYTE PER SECTOR (2 bytes, 02 00 (hex))
-	fseek(f, 11, SEEK_SET);
-	string hexArray[2] = { "02", "00" };
-	char* codeInArray = new char[2];
-	for (int i = 0; i < 2; i++) {
+	fseek(f, NUM_BYTE_PER_SECTOR_POS, SEEK_SET);
+	string hexArray[BYTE_PER_SECTOR_BYTE] = { "02", "00" };
+	char* codeInArray = new char[BYTE_PER_SECTOR_BYTE];
+	for (int i = 0; i < BYTE_PER_SECTOR_BYTE; i++) {
 		codeInArray[i] = char(hexToDecimal(hexArray[i]));
 	}
-	fwrite(codeInArray, 1, 2, f);
+	fwrite(codeInArray, 1, BYTE_PER_SECTOR_BYTE, f);
 	delete[] codeInArray;
 	//DONE
 }
-
 void writeSectorPerCluster(FILE* f) {
 	//Write sector per cluster (1 bytes, 02(hex))
-	fseek(f, 13, SEEK_SET);
+	fseek(f, NUM_SECTOR_PER_CLUSTER_POS, SEEK_SET);
 	int value =  2; 
-	fwrite(&value, 1, 1, f);
+	fwrite(&value, 1, SECTOR_PER_CLUSTER_BYTE, f);
 	//DONE
 }
-
 void writeSectorOfBoot(FILE* f) {
 	//Number sector of BOOT is 8 (2 bytes ==> 00 08(hex))
-	fseek(f, 14, SEEK_SET);
-	string hexArray[2] = { "00", "08" };
-	char* codeInArray = new char[2];
-	for (int i = 0; i < 2; i++) {
+	fseek(f, NUM_SECTOR_OF_BOOT_POS, SEEK_SET);
+	string hexArray[SECTOR_OF_BOOT_BYTE] = { "00", "08" };
+	char* codeInArray = new char[SECTOR_OF_BOOT_BYTE];
+	for (int i = 0; i < SECTOR_OF_BOOT_BYTE; i++) {
 		codeInArray[i] = char(hexToDecimal(hexArray[i]));
 	}
-	fwrite(codeInArray, 1, 2, f);
+	fwrite(codeInArray, 1, SECTOR_OF_BOOT_BYTE, f);
 	delete[] codeInArray;
 	//DONE
 }
-
 void writeNumSectorOfVol(FILE* f, int size) {
-	fseek(f, 19, SEEK_SET);
+	fseek(f, NUM_SECTOR_POS, SEEK_SET);
 	int32_t numSector = (size * 1000000) / BYTE_PER_SECTOR;
-	string* hexArray = decimalToHex(4, numSector);
-	char* codeInArray = new char[4];
-	for (int i = 0; i < 4; i++) {
+	string* hexArray = decimalToHex(NUM_SECTOR_BYTE, numSector);
+	char* codeInArray = new char[NUM_SECTOR_BYTE];
+	for (int i = 0; i < NUM_SECTOR_BYTE; i++) {
 		codeInArray[i] = char(hexToDecimal(hexArray[i]));
 	}
-	fwrite(codeInArray, 1, 4, f);
+	fwrite(codeInArray, 1, NUM_SECTOR_BYTE, f);
 	delete[] codeInArray;
 	delete[] hexArray;
 }
-
 void writeSize(FILE* f, int size) {
-	fseek(f, 23, SEEK_SET);
-	string* hexArray = decimalToHex(2, size);
-	char* codeInArray = new char[2];
-	for (int i = 0; i < 2; i++) {
+	fseek(f, SIZE_OF_VOL_POS, SEEK_SET);
+	string* hexArray = decimalToHex(SIZE_OF_VOL_BYTE, size);
+	char* codeInArray = new char[SIZE_OF_VOL_BYTE];
+	for (int i = 0; i < SIZE_OF_VOL_BYTE; i++) {
 		codeInArray[i] = char(hexToDecimal(hexArray[i]));
 	}
-	fwrite(codeInArray, 1, 2, f);
+	fwrite(codeInArray, 1, SIZE_OF_VOL_BYTE, f);
 	delete[] codeInArray;
 	delete[] hexArray;
 }
-
 void writeFirstFreeCluster(FILE* f, int first) {
 	fseek(f, 25, SEEK_SET);
 	string* hexArray = decimalToHex(4, first);
@@ -84,33 +78,36 @@ void writeFirstFreeCluster(FILE* f, int first) {
 	delete[] codeInArray;
 	delete[] hexArray;
 }
-
 void writeFileName(FILE* f, const char* name, int length) {
-	fseek(f, 36, SEEK_SET);
-	if (length < 8) {
+	fseek(f, NAME_OF_VOL_POS, SEEK_SET);
+	if (length < NAME_OF_VOL_BYTE) {
 		//if length of name<8, move pointer to fullfil 8 byte
-		int blank = 8 - length;
+		int blank = NAME_OF_VOL_BYTE - length;
 		fseek(f, blank, SEEK_CUR);
 	}
 	fwrite(name, 1, length, f);
 }
-
 void writeFileExtension(FILE* f, const char* extension, int length) {
 	//dont need fseek :) guess why
-	if (length < 4) {
-		fseek(f, 4 - length, SEEK_CUR);
+	if (length < EX_OF_VOL_BYTE) {
+		fseek(f, EX_OF_VOL_BYTE - length, SEEK_CUR);
 	}
 	fwrite(extension, 1, length, f);
 }
 
+int readValueOfVol(FILE* f, int numByteRead, int posRead) {
+	fseek(f, posRead, SEEK_SET);
+	char* buffer = new char[numByteRead];
+	fread(buffer, 1, numByteRead, f);
+	return charToInt(buffer, numByteRead);
+}
 
-bool createNewVol(const char* path, int size) {
+FILE* createNewVol(const char* path, int size) {
 	FILE* fcreate;
 	fcreate = fopen(path, "wb");
 
 	if (fcreate == NULL) {
-		cout << "Cant create file!" << endl;
-		return 0;
+		return fcreate;
 	}
 
 	//Create a file with fixed size and zero value
@@ -162,7 +159,12 @@ bool createNewVol(const char* path, int size) {
 	writeFileExtension(fcreate, ex, i + 1);
 	delete[] ex;
 
-	fclose(fcreate);
-	return 1;
+	return fcreate;
 }
-
+FILE* readVol(const char* path) {
+	FILE* file = fopen(path, "rb+");
+	return file;
+}
+bool importFileToVol(const char* path) {
+	return 0;
+}
