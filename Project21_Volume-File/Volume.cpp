@@ -199,6 +199,7 @@ bool importFileToVol(FILE* vol, const char* path) {
 	//The code above found the empty entry
 
 	//Write information of file to the entry
+	//Find the find name and file extension to here
 	char* fileName = new char[27];
 	char* fileExtension = new char[4];
 	for (int i = 0; i < 27; i++) {
@@ -221,7 +222,11 @@ bool importFileToVol(FILE* vol, const char* path) {
 	fwrite(fileName, 1, 27, vol);
 	fwrite(fileExtension, 1, 4, vol);
 	fflush(vol);
+	//the code above file the file name and file extension
 	//use fflush to write the data to physic file instead of fclose
+
+
+
 	
 	/*ông ghi thuộc tính vào phần dưới đây
 		ghi vào đây
