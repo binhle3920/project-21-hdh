@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <windows.h>
 #include <fstream>
 #include "String.h"
 #include "Convert.h"

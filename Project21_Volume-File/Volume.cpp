@@ -226,8 +226,9 @@ bool importFileToVol(FILE* vol, const char* path) {
 	//use fflush to write the data to physic file instead of fclose
 
 
-
-	
+	unsigned long subattr = GetFileAttributes((LPCTSTR)path);
+	char* attr = (char*)& subattr;
+	fwrite(attr, 1, 1, vol);
 	/*ông ghi thuộc tính vào phần dưới đây
 		ghi vào đây
 		không cần fseek, chỉ cần fwrite(attr, 1, 1, vol)
