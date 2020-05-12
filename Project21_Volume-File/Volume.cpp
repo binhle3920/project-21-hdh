@@ -1,5 +1,71 @@
 ﻿#include "Volume.h"
 
+int32_t readValueOfVol(FILE* f, int numByteRead, int posRead) {
+	fseek(f, 0, SEEK_SET);
+	fseek(f, posRead, SEEK_SET);
+	cout << ftell(f) << endl;
+	char* buffer = new char[numByteRead];
+	fread(buffer, 1, numByteRead, f);
+
+	return charToInt(buffer, numByteRead);
+}
+int seekToEmptyEntry(FILE* f) {
+	int curByte = -64;
+	int countEntry = 1;
+	fseek(f, curByte, SEEK_END);
+	//Find the entry that is empty
+	char checkEntry;
+	fread(&checkEntry, 1, 1, f);
+	while (checkEntry != '\0') {
+		countEntry++;
+		fseek(f, curByte * countEntry, SEEK_END);
+		fread(&checkEntry, 1, 1, f);
+	}
+	fseek(f, -1, SEEK_CUR); //Move the pointer of file to the first byte of entry
+	//The code above found the empty entry
+
+	return countEntry;
+}
+long firstFreeCluster(FILE* f, int first, long numCluster) {
+	//Num cluster is number cluster need to save a file
+	//save the current byte to write "free cluster"
+	long curPos = ftell(f);
+
+	int firstFree = first;
+
+	fseek(f, firstFree * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
+	char checkEntry;
+	fread(&checkEntry, 1, 1, f);
+	while (checkEntry != '\0') {
+		firstFree++;
+		fseek(f, firstFree * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
+		fread(&checkEntry, 1, 1, f);
+	}
+	fseek(f, -1, SEEK_CUR);
+
+	//count if the number of cluster fit the size of file
+	int countCluster = 0;
+	int temp = firstFree;
+	while (checkEntry == '\0' && countCluster < numCluster) {
+		fseek(f, temp * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
+		fread(&checkEntry, 1, 1, f);
+		temp++;
+		countCluster++;
+	}
+	if (countCluster == numCluster) {
+		fseek(f, curPos, SEEK_SET);
+		return firstFree;
+	}
+	else {
+		fseek(f, curPos, SEEK_SET);
+		return firstFreeCluster(f, temp, numCluster);
+	}
+	//Return to the right position
+
+}
+
+
+
 void writeJumpCode(FILE* f) {
 	//Write JUMP CODE to the file (3 bytes, EB 34 90 (hex))
 	fseek(f, 0, SEEK_SET);
@@ -96,6 +162,8 @@ void writeFileExtension(FILE* f, const char* extension, int length) {
 	fflush(f);
 }
 
+
+
 void writeIFNameAndEx(FILE* f, const char* path) {
 	//Write information of file to the entry
 	//Find the find name and file extension to here
@@ -124,35 +192,56 @@ void writeIFNameAndEx(FILE* f, const char* path) {
 	//the code above file the file name and file extension
 }
 void writeEntryInDex(FILE* f, int index) {
-	return;
-}
-
-int32_t readValueOfVol(FILE* f, int numByteRead, int posRead) {
-	fseek(f, 0, SEEK_SET);
-	fseek(f, posRead, SEEK_SET);
-	cout << ftell(f) << endl;
-	char* buffer = new char[numByteRead];
-	fread(buffer, 1, numByteRead, f);
-
-	return charToInt(buffer, numByteRead);
-}
-int seekToEmptyEntry(FILE* f) {
-	int curByte = -64;
-	int countEntry = 1;
-	fseek(f, curByte, SEEK_END);
-	//Find the entry that is empty
-	char checkEntry;
-	fread(&checkEntry, 1, 1, f);
-	while (checkEntry != '\0') {
-		countEntry++;
-		fseek(f, curByte * countEntry, SEEK_END);
-		fread(&checkEntry, 1, 1, f);
+	string* hex = decimalToHex(2, index);
+	char* codeInArray = new char[2];
+	for (int i = 0; i < 2; i++) {
+		codeInArray[i] = char(hexToDecimal(hex[i]));
 	}
-	fseek(f, -1, SEEK_CUR); //Move the pointer of file to the first byte of entry
-	//The code above found the empty entry
-
-	return countEntry;
+	fwrite(codeInArray, 1, 2, f);
+	fflush(f);
+	delete[] codeInArray;
+	delete[] hex;
 }
+void writeAttr(FILE* f, const char* path) {
+	char attr = 0;
+
+	DWORD subattr = GetFileAttributesA(path);
+	if (subattr & FILE_ATTRIBUTE_READONLY)
+		attr |= (1 << 0);
+	if (subattr & FILE_ATTRIBUTE_HIDDEN)
+		attr |= (1 << 1);
+	if (subattr & FILE_ATTRIBUTE_SYSTEM)
+		attr |= (1 << 2);
+	if (subattr & FILE_ATTRIBUTE_DIRECTORY)
+		attr |= (1 << 4);
+	if (subattr & FILE_ATTRIBUTE_ARCHIVE)
+		attr |= (1 << 5);
+	fwrite(&attr, 1, 1, f);
+}
+void writeClusterStart(FILE* f, int size) {
+	long clusterStart = firstFreeCluster(f, 4, size);
+	string* hex = decimalToHex(4, clusterStart);
+	char* codeInArray = new char[4];
+	for (int i = 0; i < 4; i++) {
+		codeInArray[i] = char(hexToDecimal(hex[i]));
+	}
+	fwrite(codeInArray, 1, NUM_SECTOR_BYTE, f);
+	fflush(f);
+	delete[] codeInArray;
+	delete[] hex;
+}
+void writeSizeOfImportFile(FILE* f, int size) {
+	string* hex = decimalToHex(4, size);
+	char* codeInArray = new char[4];
+	for (int i = 0; i < 4; i++) {
+		codeInArray[i] = char(hexToDecimal(hex[i]));
+	}
+	fwrite(codeInArray, 1, NUM_SECTOR_BYTE, f);
+	fflush(f);
+	delete[] codeInArray;
+	delete[] hex;
+}
+
 
 FILE* createNewVol(const char* path, int size) {
 	FILE* fcreate;
@@ -222,13 +311,24 @@ FILE* readVol(const char* path) {
 bool importFileToVol(FILE* vol, const char* path) {
 	FILE* file = fopen(path, "rb");
 
+	//Find file size
+	fseek(file, 0, SEEK_END);
+	long size = ftell(file);
+	long numClusterNeeded = size / (SECTOR_PER_CLUSTER * BYTE_PER_SECTOR);
+
+	
 	if (file == NULL) {
 		return 0;
 	}
 
 
-	seekToEmptyEntry(vol);
+	int indexEntry = seekToEmptyEntry(vol);
 	writeIFNameAndEx(vol, path);
-	
+	writeAttr(vol, path);
+	writeEntryInDex(vol, indexEntry);
+	fseek(vol, 6, SEEK_CUR); //write pass
+	writeClusterStart(vol, numClusterNeeded);
+	writeSizeOfImportFile(vol, size);
+
 	return 1;
 }

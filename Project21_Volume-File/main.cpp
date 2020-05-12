@@ -62,7 +62,7 @@ int main() {
 			loop = false;
 			break;
 		case 1:
-			if (importFileToVol(vol, "xinchao.txt")) {
+			if (importFileToVol(vol, "image.jpg")) {
 				cout << "Import file successful!" << endl;
 			}
 		}
