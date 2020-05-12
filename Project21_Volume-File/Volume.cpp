@@ -96,6 +96,37 @@ void writeFileExtension(FILE* f, const char* extension, int length) {
 	fflush(f);
 }
 
+void writeIFNameAndEx(FILE* f, const char* path) {
+	//Write information of file to the entry
+	//Find the find name and file extension to here
+	char* fileName = new char[27];
+	char* fileExtension = new char[4];
+	for (int i = 0; i < 27; i++) {
+		fileName[i] = '\0';
+		if (i < 4) {
+			fileExtension[i] = '\0';
+		}
+	}
+	int curPos = strlen(path) - 1;
+	int fileExtensionPos = 0;
+	while (path[curPos] != '.') {
+		fileExtension[fileExtensionPos++] = path[curPos--];
+	}
+	int fileNamePos = 0;
+	while (curPos >= 0 && path[curPos] != '\\') {
+		fileName[fileNamePos++] = path[curPos--];
+	}
+	_strrev(fileName);
+	_strrev(fileExtension);
+	fwrite(fileName, 1, 27, f);
+	fwrite(fileExtension, 1, 4, f);
+	fflush(f);
+	//the code above file the file name and file extension
+}
+void writeEntryInDex(FILE* f, int index) {
+	return;
+}
+
 int32_t readValueOfVol(FILE* f, int numByteRead, int posRead) {
 	fseek(f, 0, SEEK_SET);
 	fseek(f, posRead, SEEK_SET);
@@ -104,6 +135,23 @@ int32_t readValueOfVol(FILE* f, int numByteRead, int posRead) {
 	fread(buffer, 1, numByteRead, f);
 
 	return charToInt(buffer, numByteRead);
+}
+int seekToEmptyEntry(FILE* f) {
+	int curByte = -64;
+	int countEntry = 1;
+	fseek(f, curByte, SEEK_END);
+	//Find the entry that is empty
+	char checkEntry;
+	fread(&checkEntry, 1, 1, f);
+	while (checkEntry != '\0') {
+		countEntry++;
+		fseek(f, curByte * countEntry, SEEK_END);
+		fread(&checkEntry, 1, 1, f);
+	}
+	fseek(f, -1, SEEK_CUR); //Move the pointer of file to the first byte of entry
+	//The code above found the empty entry
+
+	return countEntry;
 }
 
 FILE* createNewVol(const char* path, int size) {
@@ -177,64 +225,10 @@ bool importFileToVol(FILE* vol, const char* path) {
 	if (file == NULL) {
 		return 0;
 	}
-	//Move the pointer of volume to the last cluster
-	//Find num sector of vol
-	int32_t numSector = readValueOfVol(vol, NUM_SECTOR_BYTE, NUM_SECTOR_POS);
-	//From num sector of vol ==> num cluster
-	int32_t numCluster = numSector / 2;
-	//RDET at the last cluster: 100 cluster ==> 0-99 : 99
-	int rdetCluster = numCluster - 1;
-	long rdetClusterByte = rdetCluster * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR;
-
-	//Move to the first entry
-	fseek(vol, rdetClusterByte, SEEK_SET);
-	//Find the entry that is empty
-	char checkEntry;
-	fread(&checkEntry, 1, 1, vol);
-	while (checkEntry != '\0') {
-		fseek(vol, BYTE_PER_ENTRY - 1, SEEK_CUR);
-		fread(&checkEntry, 1, 1, vol);
-	}
-	fseek(vol, -1, SEEK_CUR); //Move the pointer of file to the first byte of entry
-	//The code above found the empty entry
-
-	//Write information of file to the entry
-	//Find the find name and file extension to here
-	char* fileName = new char[27];
-	char* fileExtension = new char[4];
-	for (int i = 0; i < 27; i++) {
-		fileName[i] = '\0';
-		if (i < 4) {
-			fileExtension[i] = '\0';
-		}
-	}
-	int curPos = strlen(path) - 1;
-	int fileExtensionPos = 0;
-	while (path[curPos] != '.') {
-		fileExtension[fileExtensionPos++] = path[curPos--];
-	}
-	int fileNamePos = 0;
-	while (curPos >=0 && path[curPos] != '\\') {
-		fileName[fileNamePos++] = path[curPos--];
-	}
-	_strrev(fileName);
-	_strrev(fileExtension);
-	fwrite(fileName, 1, 27, vol);
-	fwrite(fileExtension, 1, 4, vol);
-	fflush(vol);
-	//the code above file the file name and file extension
-	//use fflush to write the data to physic file instead of fclose
 
 
-	unsigned long subattr = GetFileAttributes((LPCTSTR)path);
-	char* attr = (char*)& subattr;
-	fwrite(attr, 1, 1, vol);
-	/*ông ghi thuộc tính vào phần dưới đây
-		ghi vào đây
-		không cần fseek, chỉ cần fwrite(attr, 1, 1, vol)
-		với attr là kiểu char*
-	//ghi thuộc tính ở phần trên đầy*/
-
-
+	seekToEmptyEntry(vol);
+	writeIFNameAndEx(vol, path);
+	
 	return 1;
 }
