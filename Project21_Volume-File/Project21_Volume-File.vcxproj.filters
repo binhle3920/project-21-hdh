@@ -26,10 +26,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Volume.h">
+    <ClInclude Include="Convert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Convert.h">
+    <ClInclude Include="Volume.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
