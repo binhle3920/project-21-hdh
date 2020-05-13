@@ -35,6 +35,9 @@ using namespace std;
 
 FILE* createNewVol(const char* path, int size);
 FILE* readVol(const char* path);
+
 bool importFileToVol(FILE* vol, const char* path);
+void printListFile(FILE* vol);
 
 int32_t readValueOfVol(FILE* f, int numByteRead, int posRead);
+

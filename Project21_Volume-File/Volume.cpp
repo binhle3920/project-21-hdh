@@ -9,7 +9,30 @@ int32_t readValueOfVol(FILE* f, int numByteRead, int posRead) {
 
 	return charToInt(buffer, numByteRead);
 }
-int seekToEmptyEntry(FILE* f) {
+int seekToEmptyEntry(FILE* f, const char* path) {
+	//Get file name and ex
+	char* fileName = new char[27];
+	char* fileExtension = new char[4];
+	for (int i = 0; i < 27; i++) {
+		fileName[i] = '\0';
+		if (i < 4) {
+			fileExtension[i] = '\0';
+		}
+	}
+	int curPos = strlen(path) - 1;
+	int fileExtensionPos = 0;
+	while (path[curPos] != '.') {
+		fileExtension[fileExtensionPos++] = path[curPos--];
+	}
+	int fileNamePos = 0;
+	curPos--; //skip the '.'
+	while (curPos >= 0 && path[curPos] != '\\') {
+		fileName[fileNamePos++] = path[curPos--];
+	}
+	_strrev(fileName);
+	_strrev(fileExtension);
+	//---------------------------------------------------------------------------
+
 	int curByte = -64;
 	int countEntry = 1;
 	fseek(f, curByte, SEEK_END);
@@ -17,13 +40,26 @@ int seekToEmptyEntry(FILE* f) {
 	char checkEntry;
 	fread(&checkEntry, 1, 1, f);
 	while (checkEntry != '\0') {
+		fseek(f, -1, SEEK_CUR); //back to 1 byte
+		char* name = new char[27]; //declare file name
+		char* ex = new char[4]; //declare file ex
+		fread(name, 27, 1, f); //read the entry name
+		fread(ex, 4, 1, f); //read the entry ex
+		if (strcmp(fileName, name) == 0 && strcmp(fileExtension, ex) == 0) {
+			return 0;
+		}
+
 		countEntry++;
 		fseek(f, curByte * countEntry, SEEK_END);
 		fread(&checkEntry, 1, 1, f);
+		delete[] name;
+		delete[] ex;
 	}
 	fseek(f, -1, SEEK_CUR); //Move the pointer of file to the first byte of entry
 	//The code above found the empty entry
 
+	delete[] fileName;
+	delete[] fileExtension;
 	return countEntry;
 }
 long firstFreeCluster(FILE* f) {
@@ -168,6 +204,7 @@ void writeIFNameAndEx(FILE* f, const char* path) {
 		fileExtension[fileExtensionPos++] = path[curPos--];
 	}
 	int fileNamePos = 0;
+	curPos--; //skip the '.'
 	while (curPos >= 0 && path[curPos] != '\\') {
 		fileName[fileNamePos++] = path[curPos--];
 	}
@@ -177,6 +214,9 @@ void writeIFNameAndEx(FILE* f, const char* path) {
 	fwrite(fileExtension, 1, 4, f);
 	fflush(f);
 	//the code above file the file name and file extension
+
+	delete[] fileName;
+	delete[] fileExtension;
 }
 void writeEntryInDex(FILE* f, int index) {
 	string* hex = decimalToHex(2, index);
@@ -227,6 +267,9 @@ void writeSizeOfImportFile(FILE* f, int size) {
 	fflush(f);
 	delete[] codeInArray;
 	delete[] hex;
+}
+bool checkDuplicateFile(FILE* f) {
+	return 0;
 }
 //-------------------------------------------------------------------------------------------
 
@@ -313,7 +356,11 @@ bool importFileToVol(FILE* vol, const char* path) {
 	}
 
 	//Write entry of file
-	int indexEntry = seekToEmptyEntry(vol);
+	int indexEntry = seekToEmptyEntry(vol, path);
+	if (indexEntry == 0) {
+		return 0;
+	}
+
 	writeIFNameAndEx(vol, path);
 	writeAttr(vol, path);
 	writeEntryInDex(vol, indexEntry);
@@ -347,6 +394,8 @@ bool importFileToVol(FILE* vol, const char* path) {
 		fread(buffer, 1020, 1, file);
 		fwrite(buffer, 1, 1020, vol);
 	}
+
+	delete[] buffer;
 	return 1;
 }
 void printListFile(FILE* vol) {
@@ -354,6 +403,22 @@ void printListFile(FILE* vol) {
 	char* fileName = new char[27];
 	char* fileEx = new char[4];
 
+	//move to the 1st file
 	fseek(vol, curEntry * (-64), SEEK_END);
-	
+	int count = 0;
+	char temp;
+	fread(&temp, 1, 1, vol);
+	while (temp != '\0') {
+		fseek(vol, -1, SEEK_CUR);
+		fread(fileName, 1, 27, vol);
+		fread(fileEx, 1, 4, vol);
+		cout << count++ << ". " << fileName << "." << fileEx << endl;
+		curEntry++;
+		fseek(vol, curEntry * (-64), SEEK_END);
+		fread(&temp, 1, 1, vol);
+	}
+
+
+	delete[] fileName;
+	delete[] fileEx;
 }
