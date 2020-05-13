@@ -1,5 +1,8 @@
 ﻿#include "Volume.h"
 
+hash<string> pass;
+
+//Some other function
 int32_t readValueOfVol(FILE* f, int numByteRead, int posRead) {
 	fseek(f, 0, SEEK_SET);
 	fseek(f, posRead, SEEK_SET);
@@ -84,6 +87,11 @@ long firstFreeCluster(FILE* f) {
 
 	//Return to the right position
 
+}
+unsigned long long stringHashing(string s) {
+	unsigned long long g;
+	g = pass(s);
+	return g;
 }
 
 
@@ -268,11 +276,20 @@ void writeSizeOfImportFile(FILE* f, int size) {
 	delete[] codeInArray;
 	delete[] hex;
 }
-bool checkDuplicateFile(FILE* f) {
-	return 0;
+void writePassword(FILE* f, int32_t pass) {
+	string* hex = decimalToHex(6, pass);
+	char* codeInArray = new char[6];
+	for (int i = 0; i < 6; i++) {
+		codeInArray[i] = char(hexToDecimal(hex[i]));
+	}
+	fwrite(codeInArray, 1, 6, f);
+	fflush(f);
+	delete[] codeInArray;
+	delete[] hex;
 }
 //-------------------------------------------------------------------------------------------
 
+//Create vol or read vol
 FILE* createNewVol(const char* path, int size) {
 	FILE* fcreate;
 	fcreate = fopen(path, "wb+");
@@ -337,8 +354,11 @@ FILE* readVol(const char* path) {
 	FILE* file = fopen(path, "rb+");
 	return file;
 }
+//-------------------------------------------------------------------------------------------
 
-bool importFileToVol(FILE* vol, const char* path) {
+
+//Vol function
+bool importFileToVol(FILE* vol, const char* path, uint64_t pass) {
 	FILE* file = fopen(path, "rb");
 
 	if (file == NULL) {
@@ -364,7 +384,12 @@ bool importFileToVol(FILE* vol, const char* path) {
 	writeIFNameAndEx(vol, path);
 	writeAttr(vol, path);
 	writeEntryInDex(vol, indexEntry);
-	fseek(vol, 6, SEEK_CUR); //write pass
+	if (pass == 0) {
+		fseek(vol, 6, SEEK_CUR);
+	}
+	else {
+		writePassword(vol, pass);
+	}
 	writeClusterStart(vol);
 	writeSizeOfImportFile(vol, size);
 

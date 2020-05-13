@@ -1,5 +1,7 @@
 #include <iostream>
 #include "Volume.h"
+#include <ios>
+#include <limits>
 using namespace std;
 
 int main() {
@@ -8,6 +10,7 @@ int main() {
 	cout << "Do you want to open or create a volume (o/c): ";
 	char userChoice;
 	cin >> userChoice;
+	cin.ignore();
 	if (userChoice == 'c') {
 		char* p = new char[14];
 		while (true) {
@@ -33,7 +36,6 @@ int main() {
 		char* p = new char[14];
 		while (true) { 
 			cout << "Input name of volume (max 10 characters): ";
-			cin.ignore(); //clear buffer
 			cin.getline(p, 14);
 			vol = readVol(p);
 			if (vol == NULL) {
@@ -47,7 +49,7 @@ int main() {
 	}
 
 	char* filePath = new char[100];
-
+	char* pass = new char[100];
 
 	bool loop = true;
 	while (loop) {
@@ -61,30 +63,50 @@ int main() {
 		cout << "0. Exit" << endl;
 		cout << "Type here: ";
 		cin >> choice;
-		
+		cin.ignore();
 
 		switch (choice) {
-		case 0:
+		case 0: {
 			loop = false;
 			break;
-		case 1:
+		}
+		case 1: {
 			cout << "Write file name that you want to import: ";
-			
-			cin.ignore(); //clear buffer
 			cin.getline(filePath, 100);
+			cout << "Set password for your file (y/n)?: ";
+			char c;
+			cin >> c;
+			cin.ignore();
+			unsigned long long password = 0;
+			if (c == 'n') {
+				password = 0;
+			}
+			else {
+				cout << "Write your password: ";
+				cin.getline(pass, 100);
+				string s;
+				for (int i = 0; i < strlen(pass); i++) {
+					s += pass[i];
+				}
+				password = stringHashing(s);
+			}
 
-			if (importFileToVol(vol, filePath)) {
+			if (importFileToVol(vol, filePath, password)) {
 				cout << "Import file successful!" << endl;
 			}
 			else {
 				cout << "Error in importing file!" << endl;
 			}
 			break;
-		case 3:
+		}
+		case 3: {
 			printListFile(vol);
+			break;
+		}
 		}
 	}
 
+	delete[] pass;
 	delete[] filePath;
 	fclose(vol);
 	return 0;

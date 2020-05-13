@@ -5,7 +5,11 @@
 #include <fstream>
 #include "String.h"
 #include "Convert.h"
+#include <functional>
+
 using namespace std;
+
+
 
 #define BYTE_PER_SECTOR 512
 #define SECTOR_PER_CLUSTER 2
@@ -36,8 +40,9 @@ using namespace std;
 FILE* createNewVol(const char* path, int size);
 FILE* readVol(const char* path);
 
-bool importFileToVol(FILE* vol, const char* path);
+bool importFileToVol(FILE* vol, const char* path, uint64_t pass);
 void printListFile(FILE* vol);
 
 int32_t readValueOfVol(FILE* f, int numByteRead, int posRead);
 
+unsigned long long stringHashing(string s);

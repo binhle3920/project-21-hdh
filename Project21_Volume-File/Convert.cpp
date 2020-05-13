@@ -15,11 +15,11 @@ int hexToDecimal(string hex) {
 	return result;
 }
 
-string* decimalToHex(int numByte, int32_t decimal) {
+string* decimalToHex(int numByte, uint64_t decimal) {
 	char* byteValue = new char[numByte*2];
 	int curByte = numByte*2 - 1;
 
-	int32_t byteNum;
+	uint64_t byteNum;
 	while (decimal > 0) {
 		byteNum = decimal % 16;
 		if (byteNum >= 0 && byteNum <= 9) {
