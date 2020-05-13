@@ -26,12 +26,12 @@ int seekToEmptyEntry(FILE* f) {
 
 	return countEntry;
 }
-long firstFreeCluster(FILE* f, int first, long numCluster) {
+long firstFreeCluster(FILE* f) {
 	//Num cluster is number cluster need to save a file
 	//save the current byte to write "free cluster"
 	long curPos = ftell(f);
 
-	int firstFree = first;
+	int firstFree = 4;
 
 	fseek(f, firstFree * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
 	char checkEntry;
@@ -41,31 +41,17 @@ long firstFreeCluster(FILE* f, int first, long numCluster) {
 		fseek(f, firstFree * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
 		fread(&checkEntry, 1, 1, f);
 	}
-	fseek(f, -1, SEEK_CUR);
 
-	//count if the number of cluster fit the size of file
-	int countCluster = 0;
-	int temp = firstFree;
-	while (checkEntry == '\0' && countCluster < numCluster) {
-		fseek(f, temp * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
-		fread(&checkEntry, 1, 1, f);
-		temp++;
-		countCluster++;
-	}
-	if (countCluster == numCluster) {
-		fseek(f, curPos, SEEK_SET);
-		return firstFree;
-	}
-	else {
-		fseek(f, curPos, SEEK_SET);
-		return firstFreeCluster(f, temp, numCluster);
-	}
+	
+	fseek(f, curPos, SEEK_SET);
+	return firstFree;
+
 	//Return to the right position
 
 }
 
 
-
+//These function used for write volume info
 void writeJumpCode(FILE* f) {
 	//Write JUMP CODE to the file (3 bytes, EB 34 90 (hex))
 	fseek(f, 0, SEEK_SET);
@@ -161,9 +147,10 @@ void writeFileExtension(FILE* f, const char* extension, int length) {
 	fwrite(extension, 1, length, f);
 	fflush(f);
 }
+//-------------------------------------------------------------------------------------------
 
 
-
+//These function used for write file import info
 void writeIFNameAndEx(FILE* f, const char* path) {
 	//Write information of file to the entry
 	//Find the find name and file extension to here
@@ -218,8 +205,8 @@ void writeAttr(FILE* f, const char* path) {
 		attr |= (1 << 5);
 	fwrite(&attr, 1, 1, f);
 }
-void writeClusterStart(FILE* f, int size) {
-	long clusterStart = firstFreeCluster(f, 4, size);
+void writeClusterStart(FILE* f) {
+	long clusterStart = firstFreeCluster(f);
 	string* hex = decimalToHex(4, clusterStart);
 	char* codeInArray = new char[4];
 	for (int i = 0; i < 4; i++) {
@@ -241,7 +228,7 @@ void writeSizeOfImportFile(FILE* f, int size) {
 	delete[] codeInArray;
 	delete[] hex;
 }
-
+//-------------------------------------------------------------------------------------------
 
 FILE* createNewVol(const char* path, int size) {
 	FILE* fcreate;
@@ -311,6 +298,10 @@ FILE* readVol(const char* path) {
 bool importFileToVol(FILE* vol, const char* path) {
 	FILE* file = fopen(path, "rb");
 
+	if (file == NULL) {
+		return 0;
+	}
+
 	//Find file size
 	fseek(file, 0, SEEK_END);
 	long size = ftell(file);
@@ -321,14 +312,48 @@ bool importFileToVol(FILE* vol, const char* path) {
 		return 0;
 	}
 
-
+	//Write entry of file
 	int indexEntry = seekToEmptyEntry(vol);
 	writeIFNameAndEx(vol, path);
 	writeAttr(vol, path);
 	writeEntryInDex(vol, indexEntry);
 	fseek(vol, 6, SEEK_CUR); //write pass
-	writeClusterStart(vol, numClusterNeeded);
+	writeClusterStart(vol);
 	writeSizeOfImportFile(vol, size);
 
+	//Write data of file
+	int firstCluster = firstFreeCluster(vol);
+	fseek(vol, firstCluster * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
+	char* buffer = new char[1020];
+
+	fseek(file, 0, SEEK_SET);
+	fread(buffer, 1020, 1, file);
+	fwrite(buffer, 1, 1020, vol);
+
+	while (!feof(file)) {
+		//Find the next free cluster and write it 4 byte to current cluster
+		int nextCluster = firstFreeCluster(vol);
+		string* hexArray = decimalToHex(4, nextCluster);
+		char* codeInArray = new char[4];
+		for (int i = 0; i < 4; i++) {
+			codeInArray[i] = char(hexToDecimal(hexArray[i]));
+		}
+		fwrite(codeInArray, 1, 4, vol);
+		fflush(vol);
+		delete[] codeInArray;
+		delete[] hexArray;
+		//seek to the next cluster
+		fseek(vol, nextCluster * BYTE_PER_SECTOR * SECTOR_PER_CLUSTER, SEEK_SET);
+		fread(buffer, 1020, 1, file);
+		fwrite(buffer, 1, 1020, vol);
+	}
 	return 1;
+}
+void printListFile(FILE* vol) {
+	int curEntry = 1;
+	char* fileName = new char[27];
+	char* fileEx = new char[4];
+
+	fseek(vol, curEntry * (-64), SEEK_END);
+	
 }

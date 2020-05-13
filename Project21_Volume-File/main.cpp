@@ -62,8 +62,16 @@ int main() {
 			loop = false;
 			break;
 		case 1:
-			if (importFileToVol(vol, "image.jpg")) {
+			cout << "Write file name that you want to import: ";
+			char* filePath = new char[100];
+			cin.ignore(); //clear buffer
+			cin.getline(filePath, 100);
+
+			if (importFileToVol(vol, filePath)) {
 				cout << "Import file successful!" << endl;
+			}
+			else {
+				cout << "Cant not open file" << endl;
 			}
 		}
 	}
