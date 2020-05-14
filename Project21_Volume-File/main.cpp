@@ -61,6 +61,7 @@ int main() {
 		cout << "1. Import file" << endl;
 		cout << "2. Export file" << endl;
 		cout << "3. List of file" << endl;
+		cout << "4. Delete file" << endl;
 		cout << "0. Exit" << endl;
 		cout << "Type here: ";
 		cin >> choice;
@@ -116,6 +117,18 @@ int main() {
 		case 3: {
 			printListFile(vol);
 			break;
+		}
+		case 4: {
+			cout << "Write file name you want to delete: ";
+			char* fileName = new char[31];
+			cin.getline(fileName, 31);
+			if (!deleteFile(vol, fileName)) {
+				cout << "Cant find file with that name" << endl;
+			}
+			else {
+				cout << "Delete file success!" << endl;
+			}
+			delete[] fileName;
 		}
 		}
 	}
