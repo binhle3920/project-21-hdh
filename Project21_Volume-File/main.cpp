@@ -1,8 +1,10 @@
 #include <iostream>
+
 #include "Volume.h"
 #include <ios>
 #include <limits>
 using namespace std;
+
 
 int main() {
 	FILE* vol{};
@@ -15,7 +17,6 @@ int main() {
 		char* p = new char[14];
 		while (true) {
 			cout << "Input name of volume (max 10 characters): ";
-			cin.ignore(); //clear buffer
 			cin.getline(p, 14);
 			cout << "Input volume size (mb): ";
 			int volSize;
@@ -64,7 +65,6 @@ int main() {
 		cout << "Type here: ";
 		cin >> choice;
 		cin.ignore();
-
 		switch (choice) {
 		case 0: {
 			loop = false;
@@ -77,17 +77,13 @@ int main() {
 			char c;
 			cin >> c;
 			cin.ignore();
-			unsigned long long password = 0;
+			unsigned long password = 0;
 			if (c == 'n') {
 				password = 0;
 			}
 			else {
-				cout << "Write your password: ";
-				cin.getline(pass, 100);
 				string s;
-				for (int i = 0; i < strlen(pass); i++) {
-					s += pass[i];
-				}
+				s = hidePass();
 				password = stringHashing(s);
 			}
 
@@ -97,6 +93,24 @@ int main() {
 			else {
 				cout << "Error in importing file!" << endl;
 			}
+			break;
+		}
+		case 2: {
+			cout << "File you want to export: ";
+			char* fileName = new char[31];
+			cin.getline(fileName, 31);
+			cout << "Output path: ";
+			char* path = new char[100];
+			cin.getline(path, 100);
+			if (!exportFile(vol, path, fileName)) {
+				cout << "Error in exporting file" << endl;
+			}
+			else {
+				cout << "Export file success." << endl;
+			}
+
+			delete[] fileName;
+			delete[] path;
 			break;
 		}
 		case 3: {

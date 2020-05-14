@@ -6,6 +6,7 @@
 #include "String.h"
 #include "Convert.h"
 #include <functional>
+#include <conio.h>
 
 using namespace std;
 
@@ -40,9 +41,11 @@ using namespace std;
 FILE* createNewVol(const char* path, int size);
 FILE* readVol(const char* path);
 
-bool importFileToVol(FILE* vol, const char* path, uint64_t pass);
+bool importFileToVol(FILE* vol, const char* path, unsigned long pass);
 void printListFile(FILE* vol);
+bool exportFile(FILE* vol, const char* path, const char* name);
 
 int32_t readValueOfVol(FILE* f, int numByteRead, int posRead);
 
-unsigned long long stringHashing(string s);
+unsigned long stringHashing(string s);
+string hidePass();

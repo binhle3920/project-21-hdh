@@ -88,12 +88,26 @@ long firstFreeCluster(FILE* f) {
 	//Return to the right position
 
 }
-unsigned long long stringHashing(string s) {
-	unsigned long long g;
+unsigned long stringHashing(string s) {
+	unsigned long g;
 	g = pass(s);
 	return g;
 }
+string hidePass() {
+	string initialpass;
+	string s;
+	char c = 0;
+	cout << "Enter pass: ";
+	while (c != 13) {
+		c = _getch();
+		s += c;
+		cout << "*";
+	}
 
+	for (int i = 0; i < s.length() - 1; i++)
+		initialpass += s[i];
+	return initialpass;
+}
 
 //These function used for write volume info
 void writeJumpCode(FILE* f) {
@@ -276,7 +290,7 @@ void writeSizeOfImportFile(FILE* f, int size) {
 	delete[] codeInArray;
 	delete[] hex;
 }
-void writePassword(FILE* f, int32_t pass) {
+void writePassword(FILE* f, unsigned long pass) {
 	string* hex = decimalToHex(6, pass);
 	char* codeInArray = new char[6];
 	for (int i = 0; i < 6; i++) {
@@ -358,7 +372,7 @@ FILE* readVol(const char* path) {
 
 
 //Vol function
-bool importFileToVol(FILE* vol, const char* path, uint64_t pass) {
+bool importFileToVol(FILE* vol, const char* path, unsigned long pass) {
 	FILE* file = fopen(path, "rb");
 
 	if (file == NULL) {
@@ -396,14 +410,21 @@ bool importFileToVol(FILE* vol, const char* path, uint64_t pass) {
 	//Write data of file
 	int firstCluster = firstFreeCluster(vol);
 	fseek(vol, firstCluster * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
-	char* buffer = new char[1020];
+	char* buffer = new char[1019];
 
 	fseek(file, 0, SEEK_SET);
-	fread(buffer, 1020, 1, file);
-	fwrite(buffer, 1, 1020, vol);
 
-	while (!feof(file)) {
+	int n = fread(buffer, 1, 1019, file);
+	fflush(vol);
+
+	do {
 		//Find the next free cluster and write it 4 byte to current cluster
+		fwrite(".", 1, 1, vol);
+		fwrite(buffer, 1, 1019, vol);
+		//reset buffer
+		for (int i = 0; i < 1019; i++) {
+			buffer[i] = '\0';
+		}
 		int nextCluster = firstFreeCluster(vol);
 		string* hexArray = decimalToHex(4, nextCluster);
 		char* codeInArray = new char[4];
@@ -416,11 +437,12 @@ bool importFileToVol(FILE* vol, const char* path, uint64_t pass) {
 		delete[] hexArray;
 		//seek to the next cluster
 		fseek(vol, nextCluster * BYTE_PER_SECTOR * SECTOR_PER_CLUSTER, SEEK_SET);
-		fread(buffer, 1020, 1, file);
-		fwrite(buffer, 1, 1020, vol);
-	}
+		n = fread(buffer, 1, 1019, file);
+	} while (n == 1019);
+	fwrite(".", 1, 1, vol);
+	fwrite(buffer, 1, 1019, vol);
 
-	delete[] buffer;
+	fclose(file);
 	return 1;
 }
 void printListFile(FILE* vol) {
@@ -446,4 +468,99 @@ void printListFile(FILE* vol) {
 
 	delete[] fileName;
 	delete[] fileEx;
+}
+bool exportFile(FILE* vol, const char* path, const char* name) {
+	FILE* exp;
+	exp = fopen(path, "wb");
+
+	if (exp == NULL) {
+		return 0;
+	}
+
+
+	//move to the file with that name
+	int curEntry = 1;
+	char* fileName = new char[27];
+	char* fileEx = new char[4];
+	char* nameWithEx = new char[31];
+	nameWithEx[0] = '\0';
+
+	//move to the 1st file
+	fseek(vol, curEntry * (-64), SEEK_END);
+	char temp;
+	fread(&temp, 1, 1, vol);
+	while (temp != '\0') {
+		fseek(vol, -1, SEEK_CUR); //back 1 byte
+		fread(fileName, 1, 27, vol); //read name
+		fread(fileEx, 1, 4, vol); //read extension
+		//move back to the first byte of entry
+		fseek(vol, -31, SEEK_CUR);
+		//------------------
+		strcat(nameWithEx, fileName);
+		strcat(nameWithEx, ".");
+		strcat(nameWithEx, fileEx); 
+		if (strcmp(nameWithEx, name) == 0) {
+			break;
+		}
+		nameWithEx[0] = '\0';
+		curEntry++;
+		fseek(vol, curEntry * (-64), SEEK_END);
+		fread(&temp, 1, 1, vol);
+	}
+
+	if (temp == '\0') {
+		return 0;
+	}
+
+	//check password
+	char* pass = new char[6];
+	fseek(vol, 34, SEEK_CUR);
+	fread(pass, 6, 1, vol);
+	unsigned long passNumber = charToInt(pass, 6);
+	if (passNumber != 0) {
+		string s;
+		s = hidePass();
+		unsigned long checkPassNumber = stringHashing(s);
+		if (passNumber != checkPassNumber) {
+			return 0;
+		}
+	}
+	fseek(vol, -40, SEEK_CUR);
+	
+
+	//currently, vol pointer is at entry of file
+	//seek to the byte say where is the first cluster
+	fseek(vol, 40, SEEK_CUR);
+	//read the first cluster
+	char* value = new char[4];
+	fread(value, 1, 4, vol);
+	int cluster = charToInt(value, 4);
+	cout << cluster << endl;
+	//seek to that cluster
+	fseek(vol, cluster * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
+
+	//seek to the first byte of file
+	fseek(exp, 0, SEEK_SET);
+	char* buffer = new char[1019];
+	char trash;
+	fread(&trash, 1, 1, vol);
+	fread(buffer, 1019, 1, vol);
+	fread(value, 4, 1, vol);
+	fwrite(buffer, 1, 1019, exp);
+	cluster = charToInt(value, 4);
+	while (cluster != 0) {
+		fseek(vol, cluster * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
+		fread(&trash, 1, 1, vol);
+		fread(buffer, 1, 1019, vol);
+		fread(value, 1, 4, vol);
+		fwrite(buffer, 1, 1019, exp);
+		cluster = charToInt(value, 4);
+	}
+
+	delete[] value;
+	delete[] fileName;
+	delete[] fileEx;
+	delete[] nameWithEx;
+
+	return 1;
 }
