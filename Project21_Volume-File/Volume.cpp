@@ -105,6 +105,7 @@ string hidePass() {
 
 	for (int i = 0; i < s.length() - 1; i++)
 		initialpass += s[i];
+	cout << endl;
 	return initialpass;
 }
 
@@ -410,7 +411,9 @@ bool importFileToVol(FILE* vol, const char* path, unsigned long pass) {
 	int firstCluster = firstFreeCluster(vol);
 	fseek(vol, firstCluster * SECTOR_PER_CLUSTER * BYTE_PER_SECTOR, SEEK_SET);
 	char* buffer = new char[1019];
-
+	for (int i = 0; i < 1019; i++) {
+		buffer[i] = '\0';
+	}
 	fseek(file, 0, SEEK_SET);
 
 	int n = fread(buffer, 1, 1019, file);
@@ -440,8 +443,9 @@ bool importFileToVol(FILE* vol, const char* path, unsigned long pass) {
 	} while (n == 1019);
 	fwrite(".", 1, 1, vol);
 	fwrite(buffer, 1, 1019, vol);
-
 	fclose(file);
+	remove(path);
+	
 	return 1;
 }
 void printListFile(FILE* vol) {
@@ -560,7 +564,7 @@ bool exportFile(FILE* vol, const char* path, const char* name) {
 	delete[] fileName;
 	delete[] fileEx;
 	delete[] nameWithEx;
-
+	fclose(exp);
 	return 1;
 }
 bool deleteFile(FILE* vol, const char* name) {
@@ -597,6 +601,21 @@ bool deleteFile(FILE* vol, const char* name) {
 	if (temp == '\0') {
 		return 0;
 	}
+
+	//check password
+	char* pass = new char[6];
+	fseek(vol, 34, SEEK_CUR);
+	fread(pass, 6, 1, vol);
+	unsigned long passNumber = charToInt(pass, 6);
+	if (passNumber != 0) {
+		string s;
+		s = hidePass();
+		unsigned long checkPassNumber = stringHashing(s);
+		if (passNumber != checkPassNumber) {
+			return 0;
+		}
+	}
+	fseek(vol, -40, SEEK_CUR);
 
 	//currently, pointer is in first byte of entry 
 	fseek(vol, 40, SEEK_CUR);
@@ -635,9 +654,53 @@ bool deleteFile(FILE* vol, const char* name) {
 	}
 	fwrite(tempB, 1, 64, vol);
 
+	delete[] pass;
 	delete[] tempT;
 	delete[] buffer;
 	delete[] value;
+	delete[] fileName;
+	delete[] fileEx;
+	delete[] nameWithEx;
+	return 1;
+}
+bool renameFile(FILE* vol, const char* name, const char* newName) {
+	//move to the file with that name
+	int curEntry = 1;
+	char* fileName = new char[27];
+	char* fileEx = new char[4];
+	char* nameWithEx = new char[31];
+	nameWithEx[0] = '\0';
+
+	//move to the 1st file
+	fseek(vol, curEntry * (-64), SEEK_END);
+	char temp;
+	fread(&temp, 1, 1, vol);
+	while (temp != '\0') {
+		fseek(vol, -1, SEEK_CUR); //back 1 byte
+		fread(fileName, 1, 27, vol); //read name
+		fread(fileEx, 1, 4, vol); //read extension
+		//move back to the first byte of entry
+		fseek(vol, -31, SEEK_CUR);
+		//------------------
+		strcat(nameWithEx, fileName);
+		strcat(nameWithEx, ".");
+		strcat(nameWithEx, fileEx);
+		if (strcmp(nameWithEx, name) == 0) {
+			break;
+		}
+		nameWithEx[0] = '\0';
+		curEntry++;
+		fseek(vol, curEntry * (-64), SEEK_END);
+		fread(&temp, 1, 1, vol);
+	}
+
+	//not found any entry
+	if (temp == '\0') {
+		return 0;
+	}
+
+	writeIFNameAndEx(vol, newName);
+
 	delete[] fileName;
 	delete[] fileEx;
 	delete[] nameWithEx;

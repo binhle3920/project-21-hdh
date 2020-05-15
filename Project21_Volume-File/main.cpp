@@ -62,6 +62,7 @@ int main() {
 		cout << "2. Export file" << endl;
 		cout << "3. List of file" << endl;
 		cout << "4. Delete file" << endl;
+		cout << "5. Rename file" << endl;
 		cout << "0. Exit" << endl;
 		cout << "Type here: ";
 		cin >> choice;
@@ -129,6 +130,27 @@ int main() {
 				cout << "Delete file success!" << endl;
 			}
 			delete[] fileName;
+			break;
+		}
+		case 5: {
+			cout << "Write file name you want to rename: ";
+			char* fileName = new char[31];
+			cin.getline(fileName, 31);
+			char* newName = new char[31];
+			cout << "Write new name: ";
+			cin.getline(newName, 31);
+			if (!renameFile(vol, fileName, newName)) {
+				cout << "Cant find file with that name" << endl;
+			}
+			else {
+				cout << "Rename file success!" << endl;
+			}
+			delete[] fileName;
+			break;
+		}
+		default: {
+			cout << "Error command!" << endl;
+			break;
 		}
 		}
 	}

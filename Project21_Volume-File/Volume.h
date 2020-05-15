@@ -45,6 +45,7 @@ bool importFileToVol(FILE* vol, const char* path, unsigned long pass);
 void printListFile(FILE* vol);
 bool exportFile(FILE* vol, const char* path, const char* name);
 bool deleteFile(FILE* vol, const char* name);
+bool renameFile(FILE* vol, const char* name, const char* newName);
 
 int32_t readValueOfVol(FILE* f, int numByteRead, int posRead);
 
