@@ -5,8 +5,21 @@
 #include <limits>
 using namespace std;
 
+void setFontSize(int FontSize)
+{
+	CONSOLE_FONT_INFOEX info = { 0 };
+	info.cbSize = sizeof(info);
+	info.dwFontSize.Y = FontSize; // leave X as zero
+	info.FontWeight = FW_NORMAL;
+	wcscpy(info.FaceName, L"Lucida Console");
+	SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), NULL, &info);
+}
 
 int main() {
+	//Setting background
+	system("COLOR 17");
+	setFontSize(14);
+	
 	FILE* vol{};
 
 	cout << "Do you want to open or create a volume (o/c): ";
@@ -27,8 +40,11 @@ int main() {
 			}
 			else {
 				cout << "Create success!!!" << endl;
+				char c = _getch();
+				system("cls");
 				break;
 			}
+			
 		}
 		delete[] p;
 	}
@@ -79,7 +95,7 @@ int main() {
 			char c;
 			cin >> c;
 			cin.ignore();
-			unsigned long password = 0;
+			unsigned long password;
 			if (c == 'n') {
 				password = 0;
 			}
@@ -153,6 +169,8 @@ int main() {
 			break;
 		}
 		}
+		char c = _getch();
+		system("cls");
 	}
 
 	delete[] pass;

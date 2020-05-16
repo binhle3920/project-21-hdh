@@ -414,6 +414,7 @@ bool importFileToVol(FILE* vol, const char* path, unsigned long pass) {
 	for (int i = 0; i < 1019; i++) {
 		buffer[i] = '\0';
 	}
+
 	fseek(file, 0, SEEK_SET);
 
 	int n = fread(buffer, 1, 1019, file);
@@ -458,11 +459,12 @@ void printListFile(FILE* vol) {
 	int count = 1;
 	char temp;
 	fread(&temp, 1, 1, vol);
+	cout << "List file in volume is: " << endl;
 	while (temp != '\0') {
 		fseek(vol, -1, SEEK_CUR);
 		fread(fileName, 1, 27, vol);
 		fread(fileEx, 1, 4, vol);
-		cout << count++ << ". " << fileName << "." << fileEx << endl;
+		cout << "\t" << count++ << ". " << fileName << "." << fileEx << endl;
 		curEntry++;
 		fseek(vol, curEntry * (-64), SEEK_END);
 		fread(&temp, 1, 1, vol);
